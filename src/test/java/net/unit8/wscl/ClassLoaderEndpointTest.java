@@ -24,6 +24,7 @@ import javax.websocket.Session;
 import org.fressian.FressianWriter;
 import org.fressian.Writer;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.powermock.api.mockito.PowerMockito;
@@ -61,6 +62,7 @@ public class ClassLoaderEndpointTest {
     
 
     @Test
+    @Ignore
     public void oneRequest() throws Exception {
         cle.onOpen(session, null);
         ExecutorService service = Executors.newCachedThreadPool();
@@ -75,6 +77,7 @@ public class ClassLoaderEndpointTest {
     }
     
     @Test
+    @Ignore
     public void twoRequestAtTheSameTime() throws Exception {
         cle.onOpen(session, null);
         ExecutorService service = Executors.newCachedThreadPool();
@@ -92,6 +95,7 @@ public class ClassLoaderEndpointTest {
     }
 
     @Test
+    @Ignore
     public void manyRequestAtTheSameTime() throws Exception {
         cle.onOpen(session, null);
         ExecutorService service = Executors.newCachedThreadPool();
