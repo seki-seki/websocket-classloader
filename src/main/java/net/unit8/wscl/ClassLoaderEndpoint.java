@@ -110,8 +110,10 @@ public class ClassLoaderEndpoint extends Endpoint {
         waitingResponses.putIfAbsent(request.getResourceName(), new ArrayBlockingQueue<ResourceResponse>(10));
         BlockingQueue<ResourceResponse> queue = waitingResponses.get(request.getResourceName());
         try {
+            
             session.getAsyncRemote().sendBinary(ByteBuffer.wrap(baos.toByteArray()));
             logger.debug("beforesize" +queue.size());
+            System.out.println(PropertyUtils.getLongSystemProperty("wscl.timeout", 5000));
             ResourceResponse response = queue.poll(PropertyUtils.getLongSystemProperty("wscl.timeout", 5000), TimeUnit.MILLISECONDS);
             logger.debug("aftersize" +queue.size());
 
