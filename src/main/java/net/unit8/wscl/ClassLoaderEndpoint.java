@@ -84,7 +84,7 @@ public class ClassLoaderEndpoint extends Endpoint {
         });
     }
 
-    public ResourceResponse request(ResourceRequest request) throws IOException {
+    public ResourceResponse request(ResourceRequest request) throws IOException, InterruptedException {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         FressianWriter fw = new FressianWriter(baos, new ILookup<Class, Map<String, WriteHandler>>() {
             @Override
@@ -106,7 +106,9 @@ public class ClassLoaderEndpoint extends Endpoint {
         BlockingQueue<ResourceResponse> queue = waitingResponses.get(request.getResourceName());
         try {
             session.getAsyncRemote().sendBinary(ByteBuffer.wrap(baos.toByteArray()));
+            logger.debug("beforesize" +queue.size());
             ResourceResponse response = queue.poll(PropertyUtils.getLongSystemProperty("wscl.timeout", 5000), TimeUnit.MILLISECONDS);
+            logger.debug("aftersize" +queue.size());
 
             if (response == null)
                 throw new IOException("WebSocket request error." + request.getResourceName());
@@ -115,9 +117,10 @@ public class ClassLoaderEndpoint extends Endpoint {
             throw new IOException("Interrupted in waiting for request." + request.getResourceName(), ex);
         } finally {
             synchronized (waitingResponses) {
-                if (queue.isEmpty()) {
-                    waitingResponses.remove(request.getResourceName());
+                while (queue.isEmpty()) {
+                    waitingResponses.wait();
                 }
+                waitingResponses.remove(request.getResourceName());
             }
         }
     }
