@@ -73,7 +73,12 @@ public class ClassLoaderEndpoint extends Endpoint {
                         if (queue != null) {
                             queue.offer(response);
                         }
-                        else logger.warn("queue is null");
+                        else {
+                            logger.warn("queue is null");
+                            ArrayBlockingQueue<ResourceResponse> tempCreateQueue = new ArrayBlockingQueue<ResourceResponse>(10);
+                            waitingResponses.putIfAbsent(response.getResourceName(), tempCreateQueue);
+                            tempCreateQueue.offer(response);
+                            }
                     } else {
                         logger.warn("Fressian read response: " + obj + "(" + obj.getClass() + ")");
                     }
