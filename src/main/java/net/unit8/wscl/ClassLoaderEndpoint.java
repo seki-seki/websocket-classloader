@@ -98,7 +98,6 @@ public class ClassLoaderEndpoint extends Endpoint {
                     return FressianUtils.map(ResourceRequest.class.getName(),
                             new ResourceRequestWriteHandler());
                 } else {
-                    logger.debug("Invalid key at write");
                     return null;
                 }
             }
@@ -107,19 +106,23 @@ public class ClassLoaderEndpoint extends Endpoint {
 
         logger.debug("fetch class:" + request.getResourceName() + ":" + request.getClassLoaderId());
 
-        waitingResponses.putIfAbsent(request.getResourceName(), new ArrayBlockingQueue<ResourceResponse>(10));
-        BlockingQueue<ResourceResponse> queue = waitingResponses.get(request.getResourceName());
+        
+        BlockingQueue<ResourceResponse> queue = null;
         try {
-            
+            synchronized (waitingResponses) {
+            waitingResponses.putIfAbsent(request.getResourceName(), new ArrayBlockingQueue<ResourceResponse>(10));
+            queue = waitingResponses.get(request.getResourceName());
             session.getAsyncRemote().sendBinary(ByteBuffer.wrap(baos.toByteArray()));
             logger.debug("beforesize" +queue.size());
             System.out.println(PropertyUtils.getLongSystemProperty("wscl.timeout", 5000));
             ResourceResponse response = queue.poll(PropertyUtils.getLongSystemProperty("wscl.timeout", 5000), TimeUnit.MILLISECONDS);
             logger.debug("aftersize" +queue.size());
+            
 
             if (response == null)
                 throw new IOException("WebSocket request error." + request.getResourceName());
             return response;
+            }
         } catch(InterruptedException ex) {
             throw new IOException("Interrupted in waiting for request." + request.getResourceName(), ex);
         } finally {
@@ -128,7 +131,6 @@ public class ClassLoaderEndpoint extends Endpoint {
                     try {
                         waitingResponses.wait();
                     } catch (InterruptedException e) {
-                        // TODO Auto-generated catch block
                         e.printStackTrace();
                     }
                 }
