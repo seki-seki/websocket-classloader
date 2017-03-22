@@ -84,7 +84,7 @@ public class ClassLoaderEndpoint extends Endpoint {
         });
     }
 
-    public ResourceResponse request(ResourceRequest request) throws IOException, InterruptedException {
+    public ResourceResponse request(ResourceRequest request) throws IOException {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         FressianWriter fw = new FressianWriter(baos, new ILookup<Class, Map<String, WriteHandler>>() {
             @Override
@@ -118,7 +118,12 @@ public class ClassLoaderEndpoint extends Endpoint {
         } finally {
             synchronized (waitingResponses) {
                 while (queue.isEmpty()) {
-                    waitingResponses.wait();
+                    try {
+                        waitingResponses.wait();
+                    } catch (InterruptedException e) {
+                        // TODO Auto-generated catch block
+                        e.printStackTrace();
+                    }
                 }
                 waitingResponses.remove(request.getResourceName());
             }
