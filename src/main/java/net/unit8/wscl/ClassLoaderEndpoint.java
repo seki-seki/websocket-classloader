@@ -59,10 +59,7 @@ public class ClassLoaderEndpoint extends Endpoint {
                             if (key.equals(ResourceResponse.class.getName()))
                                 return new ResourceResponseReadHandler();
                             else
-                            {
-                                logger.debug("Invalid key at read");
                                 return null;
-                            }
                         }
                     });
 
@@ -74,7 +71,6 @@ public class ClassLoaderEndpoint extends Endpoint {
                             queue.offer(response);
                         }
                         else {
-                            logger.warn("queue is null");
                             ArrayBlockingQueue<ResourceResponse> tempCreateQueue = new ArrayBlockingQueue<ResourceResponse>(10);
                             waitingResponses.putIfAbsent(response.getResourceName(), tempCreateQueue);
                             tempCreateQueue.offer(response);
@@ -113,10 +109,7 @@ public class ClassLoaderEndpoint extends Endpoint {
             waitingResponses.putIfAbsent(request.getResourceName(), new ArrayBlockingQueue<ResourceResponse>(10));
             queue = waitingResponses.get(request.getResourceName());
             session.getAsyncRemote().sendBinary(ByteBuffer.wrap(baos.toByteArray()));
-            logger.debug("beforesize" +queue.size());
-            System.out.println(PropertyUtils.getLongSystemProperty("wscl.timeout", 5000));
             ResourceResponse response = queue.poll(PropertyUtils.getLongSystemProperty("wscl.timeout", 5000), TimeUnit.MILLISECONDS);
-            logger.debug("aftersize" +queue.size());
             
 
             if (response == null)
