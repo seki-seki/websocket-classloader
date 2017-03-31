@@ -4,7 +4,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
@@ -57,7 +56,7 @@ public class ClassLoaderEndpoint extends Endpoint {
                     FressianReader reader = new FressianReader(new ByteBufferInputStream(buf), new ILookup<Object, ReadHandler>() {
                         @Override
                         public ReadHandler valAt(Object key) {
-                            if (((String)key).split(":")[0].equals(ResourceResponse.class.getName()))
+                            if (key.equals(ResourceResponse.class.getName()))
                                 return new ResourceResponseReadHandler();
                             else
                                 return null;
@@ -67,7 +66,6 @@ public class ClassLoaderEndpoint extends Endpoint {
                     Object obj = reader.readObject();
                     if (obj instanceof ResourceResponse) {
                         ResourceResponse response = (ResourceResponse) obj;
-                        System.out.println(response.getResourceName());
                         BlockingQueue<ResourceResponse> queue = waitingResponses.get(response.getResourceName());
                         if (queue != null) {
                             queue.offer(response);
@@ -95,12 +93,9 @@ public class ClassLoaderEndpoint extends Endpoint {
                 }
             }
         });
-        System.out.println(waitingResponses.containsKey(request.getResourceName()));
-        String resourceName = waitingResponses.containsKey(request.getResourceName()) ? request.getResourceName() + ":" + UUID.randomUUID(): request.getResourceName() + ":" + UUID.randomUUID();
-        request.setResourceName(resourceName);
         fw.writeObject(request);
 
-
+        String resourceName = request.getResourceName();
         logger.debug("fetch class:" + resourceName + ":" + request.getClassLoaderId());
 
         waitingResponses.putIfAbsent(resourceName, new ArrayBlockingQueue<ResourceResponse>(10));
@@ -115,11 +110,9 @@ public class ClassLoaderEndpoint extends Endpoint {
         } catch(InterruptedException ex) {
             throw new IOException("Interrupted in waiting for request." + resourceName, ex);
         } finally {
-            synchronized (waitingResponses) {
-                if (queue.isEmpty()) {
-                    waitingResponses.remove(resourceName);
-                }
-            }
+            if (waitingResponses.get(resourceName) != null && waitingResponses.get(resourceName).isEmpty()) 
+                                waitingResponses.remove(resourceName);
+            fw.close();
         }
     }
 
