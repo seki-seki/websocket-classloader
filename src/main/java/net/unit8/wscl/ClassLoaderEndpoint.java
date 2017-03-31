@@ -57,7 +57,7 @@ public class ClassLoaderEndpoint extends Endpoint {
                     FressianReader reader = new FressianReader(new ByteBufferInputStream(buf), new ILookup<Object, ReadHandler>() {
                         @Override
                         public ReadHandler valAt(Object key) {
-                            if (key.equals(ResourceResponse.class.getName()))
+                            if (((String)key).split(":")[0].equals(ResourceResponse.class.getName()))
                                 return new ResourceResponseReadHandler();
                             else
                                 return null;
@@ -67,6 +67,7 @@ public class ClassLoaderEndpoint extends Endpoint {
                     Object obj = reader.readObject();
                     if (obj instanceof ResourceResponse) {
                         ResourceResponse response = (ResourceResponse) obj;
+                        System.out.println(response.getResourceName());
                         BlockingQueue<ResourceResponse> queue = waitingResponses.get(response.getResourceName());
                         if (queue != null) {
                             queue.offer(response);
@@ -94,7 +95,8 @@ public class ClassLoaderEndpoint extends Endpoint {
                 }
             }
         });
-        String resourceName = waitingResponses.containsKey(request.getResourceName()) ? request.getResourceName(): request.getResourceName() + UUID.randomUUID();
+        System.out.println(waitingResponses.containsKey(request.getResourceName()));
+        String resourceName = waitingResponses.containsKey(request.getResourceName()) ? request.getResourceName() + ":" + UUID.randomUUID(): request.getResourceName() + ":" + UUID.randomUUID();
         request.setResourceName(resourceName);
         fw.writeObject(request);
 
