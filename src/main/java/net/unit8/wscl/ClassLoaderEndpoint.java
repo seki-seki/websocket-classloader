@@ -110,7 +110,7 @@ public class ClassLoaderEndpoint extends Endpoint {
             throw new IOException("Interrupted in waiting for request." + request.getResourceName(), ex);
         } finally {
             synchronized (waitingResponses) {
-                if (waitingResponses.get(request.getResourceName()).isEmpty()) {
+                if (waitingResponses.get(request.getResourceName()) != null && waitingResponses.get(request.getResourceName()).isEmpty()) {
                     waitingResponses.remove(request.getResourceName());
                 }
             }
