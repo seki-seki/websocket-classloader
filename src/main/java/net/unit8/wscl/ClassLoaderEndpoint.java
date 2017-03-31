@@ -95,23 +95,25 @@ public class ClassLoaderEndpoint extends Endpoint {
         });
         fw.writeObject(request);
 
-        String resourceName = request.getResourceName();
-        logger.debug("fetch class:" + resourceName + ":" + request.getClassLoaderId());
+        logger.debug("fetch class:" + request.getResourceName() + ":" + request.getClassLoaderId());
 
-        waitingResponses.putIfAbsent(resourceName, new ArrayBlockingQueue<ResourceResponse>(10));
-        BlockingQueue<ResourceResponse> queue = waitingResponses.get(resourceName);
+        waitingResponses.putIfAbsent(request.getResourceName(), new ArrayBlockingQueue<ResourceResponse>(10));
+        BlockingQueue<ResourceResponse> queue = waitingResponses.get(request.getResourceName());
         try {
             session.getAsyncRemote().sendBinary(ByteBuffer.wrap(baos.toByteArray()));
             ResourceResponse response = queue.poll(PropertyUtils.getLongSystemProperty("wscl.timeout", 50000), TimeUnit.MILLISECONDS);
             
             if (response == null)
-                throw new IOException("WebSocket request error." + resourceName);
+                throw new IOException("WebSocket request error." + request.getResourceName());
             return response;
         } catch(InterruptedException ex) {
-            throw new IOException("Interrupted in waiting for request." + resourceName, ex);
+            throw new IOException("Interrupted in waiting for request." + request.getResourceName(), ex);
         } finally {
-            if (waitingResponses.get(resourceName) != null && waitingResponses.get(resourceName).isEmpty()) 
-                                waitingResponses.remove(resourceName);
+            synchronized (waitingResponses) {
+                if (waitingResponses.get(request.getResourceName()).isEmpty()) {
+                    waitingResponses.remove(request.getResourceName());
+                }
+            }
             fw.close();
         }
     }
